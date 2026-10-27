@@ -12,9 +12,9 @@ st.write("Real Neural Network Integration. Apna live photo click karen, AI aap k
 # 1. Models ko Load karna (Cached for fast performance)
 @st.cache_resource
 def load_models():
-    # Sahi configuration wale updated models jo crash nahi karenge
+    # Sahi public repositories wale verified models jo crash nahi karenge
     age_pipe = pipeline("image-classification", model="nateraw/vit-age-classifier")
-    gender_pipe = pipeline("image-classification", model="risknat/vit-gender-classifier")
+    gender_pipe = pipeline("image-classification", model="rizvandg/vit-gender-classification")
     return age_pipe, gender_pipe
 
 try:
@@ -35,15 +35,18 @@ if img_file is not None:
             age_results = age_classifier(image)
             gender_results = gender_classifier(image)
             
-            # Highest confidence score wali predictions nikalna
-            top_age_label = age_results[0]['label']       # Format jaise: "15-20", "25-32", "38-43" ya single age
-            top_gender_label = gender_results[0]['label'] # Format: "male" ya "female"
+            # Highest confidence score wali predictions nikalna (Pehla element highest score hota hai)
+            top_age = age_results[0]
+            top_gender = gender_results[0]
             
-            # Gender formatting
+            top_age_label = top_age['label']       # Format jaise: "15-20", "25-32", etc.
+            top_gender_label = top_gender['label'] # Format: "male" ya "female"
+            
+            # Gender formatting logic based on labels
             if top_gender_label.lower() in ['male', 'man', 'M']:
-                gender_detected = "👨 Male"
+                gender_display = "👨 Male"
             else:
-                gender_detected = "👩 Female"
+                gender_display = "👩 Female"
                 
             # 4. Results Display
             st.success("### 📊 Live AI Analysis Results:")
@@ -52,13 +55,13 @@ if img_file is not None:
             with col1:
                 st.metric(label="🎯 Predicted Age Range", value=f"{top_age_label} Years Old")
             with col2:
-                st.metric(label="🧬 Gender Detected", value=gender_detected)
+                st.metric(label="🧬 Gender Detected", value=gender_display)
                 
-            # Extra analytical details display
+            # Detailed analytical scores view
             st.write("---")
             st.subheader("💡 Model Confidence Scores:")
-            st.write(f"Age Prediction: **{age_results[0]['label']}** ({round(age_results[0]['score']*100, 2)}% match)")
-            st.write(f"Gender Prediction: **{gender_results[0]['label']}** ({round(gender_results[0]['score']*100, 2)}% match)")
+            st.write(f"Age Prediction Match: **{top_age_label}** ({round(top_age['score']*100, 2)}% match)")
+            st.write(f"Gender Prediction Match: **{top_gender_label}** ({round(top_gender['score']*100, 2)}% match)")
             
         except Exception as e:
             st.error(f"⚠️ Prediction Error: {e}")
