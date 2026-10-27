@@ -1,3 +1,7 @@
 streamlit
-requests
+deepface
+tf-keras
+protobuf==3.20.3
+opencv-python-headless
+numpy
 pillow
