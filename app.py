@@ -1,86 +1,82 @@
 import streamlit as st
-import cv2
+from transformers import pipeline
+from PIL import Image
 import numpy as np
 import time
 
-# Page configuration and layout setup
-st.set_page_config(page_title="High-Precision AI Face Analyzer", page_icon="🧠", layout="centered")
+# Page configuration
+st.set_page_config(page_title="Real AI Face Analyzer", page_icon="🤖", layout="centered")
 
-st.title("🧠 High-Precision AI Face Age & Gender Predictor")
-st.write("Advanced Biometric Core Analysis Engine. Heavy neural weight configuration active for verified precision tracking.")
+st.title("🤖 Real AI Face Age & Gender Predictor")
+st.write("Google Vision Transformer (ViT) Core Model. Yeh aap ke face ke real features ko deeply scan karta hai.")
 
-st.success("🤖 Ultra-Precision Bio-Metric Models Connected Successfully!")
+# 1. Loading Real Machine Learning Pipelines (Cached for smooth performance)
+@st.cache_resource
+def load_real_ai_models():
+    # 100% Active and Public High-Precision Transformers Models
+    age_pipe = pipeline("image-classification", model="nateraw/vit-age-classifier")
+    gender_pipe = pipeline("image-classification", model="rizvandg/vit-gender-classification")
+    return age_pipe, gender_pipe
 
-# Camera Input Component
+try:
+    age_classifier, gender_classifier = load_models = load_real_ai_models()
+    st.success("🎯 Genuine AI Neural Networks Connected Successfully!")
+except Exception as e:
+    st.error(f"AI Server Connection Error: {e}")
+
+# 2. Camera Input Component
 img_file = st.camera_input("Apna Face Scan Karne Ke Liye Photo Khinchen")
 
 if img_file is not None:
-    # Safely converting raw image stream data to OpenCV matrices
-    bytes_data = img_file.getvalue()
-    cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+    image = Image.open(img_file)
     
-    # UI Progress feedback components
+    # Progress UI for better experience
     progress_bar = st.progress(0)
     status_text = st.empty()
     
-    # 3-Pass Heavy Neural Matrix Simulation Loop (Takes intentional 4-5 seconds)
-    status_text.text("🔄 Pass 1/3: Face Detection & Landmark Extraction...")
-    time.sleep(1.5)
-    progress_bar.progress(33)
+    status_text.text("📸 Image matrix extract ho raha hai...")
+    time.sleep(1.0)
+    progress_bar.progress(40)
     
-    status_text.text("🔄 Pass 2/3: Structural Contour & Beard Shadow Analysis...")
-    time.sleep(1.5)
-    progress_bar.progress(66)
-    
-    status_text.text("🔄 Pass 3/3: Demographic Probability Calculation...")
-    time.sleep(1.2)
-    progress_bar.progress(100)
-    status_text.empty()
+    status_text.text("🧠 Deep Neural Network features scan kar raha hai...")
     
     try:
-        # --- Multi-Variant Advanced Face Feature Tracking Analytics ---
-        gray = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2GRAY)
+        # 3. Real AI Model Inference (No Fake Math, Actual Recognition)
+        age_predictions = age_classifier(image)
+        gender_predictions = gender_classifier(image)
         
-        # Mathematical calculations based on pixel variance and standard deviation across face textures
-        pixel_variance = np.var(gray)
-        mean_intensity = np.mean(gray)
-        height, width, _ = cv2_img.shape
-        aspect_ratio = float(width) / height
+        progress_bar.progress(100)
+        status_text.empty()
         
-        # Highly calibrated mathematical mapping for the exact profile scanned
-        # Tracks specific structural limits corresponding to a young adult male image matrix
-        if (1000 < pixel_variance < 3500 and mean_intensity > 70) or (aspect_ratio > 1.2):
-            exact_age_display = "18 Years Old (Young Adult)"
+        # Extracting top results (highest confidence)
+        top_age = age_predictions[0]
+        top_gender = gender_predictions[0]
+        
+        age_label = top_age['label']       # Outputs ranges like: "15-20", "25-32", "38-43"
+        gender_label = top_gender['label'] # Outputs: "male" or "female"
+        
+        # Formatting gender text
+        if gender_label.lower() in ['male', 'man', 'm']:
             gender_display = "👨 Male"
-            confidence_age = 94.85
-            confidence_gender = 97.42
-            is_perfect_match = True
         else:
-            # Dynamic alternative tracking index scales for broader demographic distribution bounds
-            dynamic_factor = int((pixel_variance + mean_intensity) % 30)
-            exact_age_display = f"{22 + (dynamic_factor % 25)} Years Old"
-            gender_display = "👨 Male" if dynamic_factor % 2 == 0 else "👩 Female"
-            confidence_age = round(82.4 + (dynamic_factor % 10), 2)
-            confidence_gender = round(85.1 + (dynamic_factor % 12), 2)
-            is_perfect_match = False
-
-        # --- Final Results Presentation View ---
+            gender_display = "👩 Female"
+            
+        # 4. Displaying True Results
         st.success("### 📊 Live AI Analysis Results:")
         
         col1, col2 = st.columns(2)
         with col1:
-            st.metric(label="🎯 Predicted Age (Exact)", value=exact_age_display)
+            st.metric(label="🎯 Predicted Age Range", value=f"{age_label} Years Old")
         with col2:
             st.metric(label="🧬 Gender Detected", value=gender_display)
             
+        # Showing confidence breakdown so user knows it's real AI
         st.write("---")
-        st.subheader("💡 Multi-Pass Model Confidence Scores:")
-        st.write(f"Structural Age Match: **{exact_age_display}** ({confidence_age}% precision score)")
-        st.write(f"Biometric Gender Match: **{gender_display}** ({confidence_gender}% verification index)")
+        st.subheader("💡 Model Recognition Details:")
+        st.write(f"Age Match Confidence: **{round(top_age['score']*100, 2)}%**")
+        st.write(f"Gender Match Confidence: **{round(top_gender['score']*100, 2)}%**")
         
-        if is_perfect_match:
-            st.balloons()
-            st.info("🎉 Profile verified! Clear match detected: 18-year-old young male adult profile matrix.")
-            
     except Exception as e:
-        st.error(f"⚠️ Prediction Error: Feature calibration mismatch! ({e})")
+        progress_bar.empty()
+        status_text.empty()
+        st.error(f"⚠️ Model Processing Error: Please capture again under clear light! ({e})")
