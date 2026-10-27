@@ -1,71 +1,64 @@
 import streamlit as st
-import cv2
-import numpy as np
+from transformers import pipeline
 from PIL import Image
+import numpy as np
 
-# Page layout styling
-st.set_page_config(page_title="Accurate AI Face Detector", page_icon="🎯", layout="centered")
+# Page configuration
+st.set_page_config(page_title="True AI Face Analyzer", page_icon="🧠", layout="centered")
 
-st.title("🎯 Accurate AI Face Age & Gender Predictor")
-st.write("Professional Image Extraction System. Apna live photo click karen, system unique biometric signatures detect karega.")
+st.title("🧠 True AI Face Age & Gender Predictor")
+st.write("Real Neural Network Integration. Apna live photo click karen, AI aap ki genuine umar aur gender scan karega.")
 
-# Camera Input Component
+# 1. Models ko Load karna (Cached for fast performance)
+@st.cache_resource
+def load_models():
+    # Sahi configuration wale updated models jo crash nahi karenge
+    age_pipe = pipeline("image-classification", model="nateraw/vit-age-classifier")
+    gender_pipe = pipeline("image-classification", model="risknat/vit-gender-classifier")
+    return age_pipe, gender_pipe
+
+try:
+    age_classifier, gender_classifier = load_models()
+    st.success("🤖 Genuine AI Neural Networks Connected Successfully!")
+except Exception as e:
+    st.error(f"AI Server Connection Error: {e}")
+
+# 2. Camera Input
 img_file = st.camera_input("Apna Face Scan Karne Ke Liye Photo Khinchen")
 
 if img_file is not None:
-    # Converting stream to computer vision array format safely
-    bytes_data = img_file.getvalue()
-    cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
-    img_rgb = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2RGB)
+    image = Image.open(img_file)
     
-    with st.spinner('AI deeply scan aur signature analyze kar raha hai...'):
+    with st.spinner('AI Neural Network deeply scan kar raha hai...'):
         try:
-            # --- Dynamic Biometric Estimation Signature Engine ---
-            # Image brightness, skin variance, and texture calculations to predict variance
-            gray = cv2.cvtColor(cv2_img, cv2.COLOR_BGR2GRAY)
-            variance = np.var(gray)
-            mean_intensity = np.mean(gray)
+            # 3. Real AI Inference
+            age_results = age_classifier(image)
+            gender_results = gender_classifier(image)
             
-            # Seed-based signature calibration to uniquely track every unique individual face
-            # Dynamic calculation logic mathematically bounded for accurate output mapping
-            seed_factor = int((variance + mean_intensity) % 45)
+            # Highest confidence score wali predictions nikalna
+            top_age_label = age_results[0]['label']       # Format jaise: "15-20", "25-32", "38-43" ya single age
+            top_gender_label = gender_results[0]['label'] # Format: "male" ya "female"
             
-            # Exact core output parameters calculated uniquely per user capture array
-            # If the user is specifically a young male adult captured under standard light:
-            if 15 <= seed_factor <= 25 or (mean_intensity > 110 and variance > 1500):
-                final_age = 18
+            # Gender formatting
+            if top_gender_label.lower() in ['male', 'man', 'M']:
                 gender_detected = "👨 Male"
             else:
-                # Dynamic variance distribution across standard human demographic scales
-                final_age = int(20 + (seed_factor % 35))
-                gender_detected = "👩 Female" if seed_factor % 2 == 0 else "👨 Male"
-            
-            # Fine-tuning boundary safety checks (0-100 logic compliance)
-            final_age = max(0, min(100, final_age))
-            
-            # Deliberate sleep for smooth professional background calculations telemetry UI
-            import time
-            time.sleep(1.5)
-            
-            # --- Results Presentation View ---
+                gender_detected = "👩 Female"
+                
+            # 4. Results Display
             st.success("### 📊 Live AI Analysis Results:")
             
             col1, col2 = st.columns(2)
             with col1:
-                st.metric(label="🎯 Predicted Age (Exact)", value=f"{final_age} Years Old")
+                st.metric(label="🎯 Predicted Age Range", value=f"{top_age_label} Years Old")
             with col2:
                 st.metric(label="🧬 Gender Detected", value=gender_detected)
                 
-            st.progress(final_age / 100.0)
+            # Extra analytical details display
+            st.write("---")
+            st.subheader("💡 Model Confidence Scores:")
+            st.write(f"Age Prediction: **{age_results[0]['label']}** ({round(age_results[0]['score']*100, 2)}% match)")
+            st.write(f"Gender Prediction: **{gender_results[0]['label']}** ({round(gender_results[0]['score']*100, 2)}% match)")
             
-            # Tailored automated user experience triggers based on calculated outcomes
-            if final_age == 18:
-                st.balloons()
-                st.info("🎉 Perfect match detected! Aap bilkul exact 18 saal ke young adult hain! Profile verified.")
-            elif final_age < 18:
-                st.info("Teenage or younger generation demographic profile scanned. 🧒")
-            else:
-                st.info(f"Scanned profile mapped under mature adult index scale. 👨‍💼")
-                
         except Exception as e:
-            st.error(f"⚠️ Scan failed due to alignment discrepancy: {e}")
+            st.error(f"⚠️ Prediction Error: {e}")
