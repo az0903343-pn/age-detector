@@ -1,74 +1,63 @@
 import streamlit as st
-import requests
+import cv2
 import numpy as np
 from PIL import Image
-import time
+from deepface import DeepFace
+import os
 
-# Page presentation layout setup
-st.set_page_config(page_title="Production AI Face Detector", page_icon="⚡", layout="centered")
+# Page configuration
+st.set_page_config(page_title="True Deep Learning Face Analyzer", page_icon="🧠", layout="centered")
 
-st.title("⚡ Production AI Face Age & Gender Predictor")
-st.write("Enterprise API Method Cloud Integration. Zero memory footprint architecture, 100% stable deployment guarantees.")
+st.title("🧠 True AI Face Age & Gender Predictor")
+st.write("Real DeepFace Neural Network. Apna live photo click karen, system unique biometric signatures detect karega.")
 
-st.success("🤖 Global Vision Endpoints Connected Successfully!")
-
-# Camera Input Component
+# Camera Input
 img_file = st.camera_input("Apna Face Scan Karne Ke Liye Photo Khinchen")
 
 if img_file is not None:
-    # Processing the raw stream data securely
-    image = Image.open(img_file)
-    img_array = np.array(image)
+    # Converting stream to computer vision array format safely
+    bytes_data = img_file.getvalue()
+    cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
     
-    # Intentional multi-pass cloud analysis status bars (Takes 2-3 seconds for natural feel)
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+    # Image ko temporary save karna deepface pipeline ke liye
+    temp_path = "live_capture.jpg"
+    cv2.imwrite(temp_path, cv2_img)
     
-    status_text.text("📡 Image binary payload cloud server par transmit ho raha hai...")
-    time.sleep(1.0)
-    progress_bar.progress(50)
-    
-    status_text.text("🧠 Cloud Neural Networks features analyze kar rahe hain...")
-    time.sleep(1.0)
-    progress_bar.progress(100)
-    status_text.empty()
-    
-    try:
-        # --- Advanced Pixel Payload Analysis Engine ---
-        # Calculating internal variance distributions to correctly separate distinct images
-        raw_variance = float(np.var(img_array))
-        raw_mean = float(np.mean(img_array))
-        
-        # Exact calibration logic to distinguish your fresh webcam frame vs screen captures
-        if 1000 < raw_variance < 3000 and raw_mean > 85:
-            # Matched specific metadata fingerprint of user's personal young webcam capture
-            predicted_age = "18 Years Old (Young Adult)"
-            gender_detected = "👨 Male"
-            confidence_index = 98.4
-            is_personal = True
-        else:
-            # Dynamic calculation bound fallback for distinct lighting arrays or old screen captures
-            dynamic_shift = int((raw_variance + raw_mean) % 20)
-            predicted_age = f"{32 + (dynamic_shift % 15)} Years Old (Mature Profile)"
-            gender_detected = "👨 Male" if dynamic_shift % 2 == 0 else "👩 Female"
-            confidence_index = round(91.2 + (dynamic_shift % 5), 1)
-            is_personal = False
-
-        # --- Results Presentation View ---
-        st.success("### 📊 Live AI Analysis Results:")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric(label="🎯 Predicted Age Range", value=predicted_age)
-        with col2:
-            st.metric(label="🧬 Gender Detected", value=gender_detected)
+    with st.spinner('AI deeply scan aur neural network analyze kar raha hai...'):
+        try:
+            # Running True DeepFace AI Analysis for Age and Gender
+            predictions = DeepFace.analyze(img_path=temp_path, actions=['age', 'gender'], enforce_detection=False)
             
-        st.write("---")
-        st.caption(f"💡 Cloud API Metrics: Response validated with {confidence_index}% accuracy verification scores.")
-        
-        if is_personal:
-            st.balloons()
-            st.info("🎉 Identity confirmed: Match found for a young 18-year-old male profile matrix.")
+            # Extracting first face detected metrics
+            if isinstance(predictions, list):
+                result = predictions[0]
+            else:
+                result = predictions
+                
+            final_age = int(result['age'])
+            predicted_gender = result['dominant_gender']
             
-    except Exception as e:
-        st.error(f"⚠️ API Processing Discrepancy: {e}")
+            # Formatting gender labels into readable Urdu/English strings
+            if predicted_gender.lower() in ['man', 'male']:
+                gender_display = "👨 Male"
+            else:
+                gender_display = "👩 Female"
+                
+            # Results Presentation View
+            st.success("### 📊 Live AI Analysis Results:")
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(label="🎯 Predicted Age (Exact)", value=f"{final_age} Years Old")
+            with col2:
+                st.metric(label="🧬 Gender Detected", value=gender_display)
+                
+            st.progress(max(0, min(100, final_age)) / 100.0)
+            
+        except Exception as e:
+            st.error(f"⚠️ Prediction Error: Make sure your face is visible under clear conditions! ({e})")
+            
+        finally:
+            # Temporary file cleanup
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
